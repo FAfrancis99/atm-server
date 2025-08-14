@@ -160,11 +160,11 @@ This is a minimal ATM service implemented with production-minded patterns. The c
 ```mermaid
 graph TD
   A[Client] -->|HTTP JSON| B[FastAPI App]
-  B --> C[Models (Pydantic)]
+  B --> C[Models & Validation]
   B --> D[InMemoryStore]
-  D -->|Per-account Lock| D
   C --> E[Money Helpers]
-  B --> F[Constants (routes, messages)]
+  B --> F[Constants]
+  D -. "Per-account lock" .-> D
 ```
 
 ## Sequence: Deposit Request
@@ -173,17 +173,17 @@ graph TD
 sequenceDiagram
   participant C as Client
   participant API as FastAPI
-  participant M as Pydantic Model
-  participant S as InMemoryStore
+  participant M as Models
+  participant S as Store
 
-  C->>API: POST /accounts/{id}/deposit { amount }
-  API->>M: Validate amount (string → Decimal)
+  C->>API: POST /accounts/{id}/deposit {amount}
+  API->>M: validate amount (string -> Decimal)
   M-->>API: amount_cents (int)
   API->>S: deposit(id, amount_cents)
-  S->>S: Acquire account lock
+  S->>S: acquire lock
   S->>S: balance += amount_cents
   S-->>API: new_balance_cents
-  API-->>C: 200 { account_number, balance: "#.##" }
+  API-->>C: 200 {account_number, balance: "#.##"}
 ```
 
 ## Design Tenets & Invariants
