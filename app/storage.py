@@ -4,6 +4,7 @@ from __future__ import annotations
 from threading import Lock
 from typing import Dict
 from .models import cents_to_str
+from .constants import ERR_ACCOUNT_NOT_FOUND, ERR_INSUFFICIENT_FUNDS, ERR_ACCOUNT_EXISTS
 
 class InMemoryStore:
     """Simple in-memory storage with per-account locks."""
@@ -25,7 +26,7 @@ class InMemoryStore:
     def get_balance_cents(self, account_number: str) -> int:
         """Return balance in cents or raise KeyError if missing."""
         if account_number not in self._balances:
-            raise KeyError("account not found")
+            raise KeyError(ERR_ACCOUNT_NOT_FOUND)
         return self._balances[account_number]
 
     def deposit(self, account_number: str, amount_cents: int) -> int:
@@ -34,7 +35,7 @@ class InMemoryStore:
         Raises KeyError if the account is missing.
         """
         if account_number not in self._balances:
-            raise KeyError("account not found")
+            raise KeyError(ERR_ACCOUNT_NOT_FOUND)
         lock = self._get_lock(account_number)
         with lock:
             self._balances[account_number] += amount_cents
@@ -46,19 +47,19 @@ class InMemoryStore:
         Raises KeyError if missing account, ValueError for insufficient funds.
         """
         if account_number not in self._balances:
-            raise KeyError("account not found")
+            raise KeyError(ERR_ACCOUNT_NOT_FOUND)
         lock = self._get_lock(account_number)
         with lock:
             bal = self._balances[account_number]
             if amount_cents > bal:
-                raise ValueError("insufficient funds")
+                raise ValueError(ERR_INSUFFICIENT_FUNDS)
             self._balances[account_number] = bal - amount_cents
             return self._balances[account_number]
 
     def create_account(self, account_number: str, opening_balance_cents: int = 0) -> None:
         """Create a new account or raise ValueError if it already exists."""
         if account_number in self._balances:
-            raise ValueError("account already exists")
+            raise ValueError(ERR_ACCOUNT_EXISTS)
         self._balances[account_number] = opening_balance_cents
         self._locks[account_number] = Lock()
 
