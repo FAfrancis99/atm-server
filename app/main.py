@@ -1,12 +1,25 @@
+"""FastAPI app for a minimal ATM server.
+
+Provides in-memory accounts with endpoints to get balance, deposit, and withdraw.
+"""
+
+from typing import Any, Dict
+
 from fastapi import FastAPI, HTTPException
 from .models import AmountIn, BalanceOut, cents_to_str
 from .storage import InMemoryStore
-import os, json
+import os
+import json
 from decimal import Decimal, ROUND_HALF_UP
 
 app = FastAPI(title="Mini ATM Server", version="1.0.0")
 
-def _load_initial_accounts():
+def _load_initial_accounts() -> Dict[str, int]:
+    """Load initial accounts from PRELOAD_ACCOUNTS or return defaults.
+
+    PRELOAD_ACCOUNTS example: {"1001":"1000.00","1002":"250.50"}
+    Returns a mapping of account number to balance in cents.
+    """
     env = os.getenv("PRELOAD_ACCOUNTS")
     if not env:
         return {"1001": 100000, "1002": 25050}
@@ -28,11 +41,16 @@ def _load_initial_accounts():
 store = InMemoryStore(_load_initial_accounts())
 
 @app.get("/health")
-def health():
+def health() -> Dict[str, Any]:
+    """Return service status and list of account numbers."""
     return {"status": "ok", "accounts": list(store.snapshot().keys())}
 
 @app.get("/accounts/{account_number}/balance", response_model=BalanceOut)
-def get_balance(account_number: str):
+def get_balance(account_number: str) -> BalanceOut:
+    """Return the current balance for the given account.
+
+    Raises 404 if the account is not found.
+    """
     try:
         bal_cents = store.get_balance_cents(account_number)
     except KeyError:
@@ -40,7 +58,11 @@ def get_balance(account_number: str):
     return BalanceOut(account_number=account_number, balance=cents_to_str(bal_cents))
 
 @app.post("/accounts/{account_number}/deposit", response_model=BalanceOut)
-def deposit(account_number: str, body: AmountIn):
+def deposit(account_number: str, body: AmountIn) -> BalanceOut:
+    """Deposit the provided amount into the account.
+
+    Raises 404 if the account is not found.
+    """
     try:
         new_bal = store.deposit(account_number, body.amount_cents())
     except KeyError:
@@ -48,7 +70,11 @@ def deposit(account_number: str, body: AmountIn):
     return BalanceOut(account_number=account_number, balance=cents_to_str(new_bal))
 
 @app.post("/accounts/{account_number}/withdraw", response_model=BalanceOut)
-def withdraw(account_number: str, body: AmountIn):
+def withdraw(account_number: str, body: AmountIn) -> BalanceOut:
+    """Withdraw the provided amount from the account.
+
+    Raises 404 if missing account or 400 for insufficient funds.
+    """
     try:
         new_bal = store.withdraw(account_number, body.amount_cents())
     except KeyError:
@@ -58,7 +84,8 @@ def withdraw(account_number: str, body: AmountIn):
     return BalanceOut(account_number=account_number, balance=cents_to_str(new_bal))
 
 @app.get("/")
-def root():
+def root() -> Dict[str, Any]:
+    """Root endpoint with service info and example accounts."""
     return {
         "message": "Mini ATM Server",
         "docs": "/docs",
