@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  atm-server:
+    build: .
+    image: atm-server:latest
+    container_name: atm-server
+    environment:
+      # Override initial accounts if desired (example shown)
+      # PRELOAD_ACCOUNTS: '{"1001":"1000.00","1002":"250.50"}'
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
