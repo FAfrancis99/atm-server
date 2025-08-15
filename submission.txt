@@ -1,3 +1,61 @@
+Submission
+
+Approach & Design Decisions
+- FastAPI + Pydantic for a typed, self-documenting API.
+- Monetary correctness: parse amounts with Decimal, store balances as integer cents, and return strings with two decimals.
+- Concurrency: per-account locks in an in-memory store to ensure atomic deposit/withdraw.
+- Clear separation of concerns: API (app/main.py), models & money helpers (app/models.py), storage (app/storage.py), shared strings (app/constants.py).
+- No magic values: routes, messages, and keys centralized in app/constants.py.
+- Test-first mindset: integration tests plus validation, boundary, and basic concurrency tests.
+- Containerization and simple deployment via Docker/Compose (Render-ready).
+
+Challenges Addressed
+- Floating-point precision for money (solved with Decimal + integer cents).
+- Thread safety for concurrent updates (per-account Lock).
+- Strict input validation and consistent error messages (Pydantic models).
+- Deterministic startup data via PRELOAD_ACCOUNTS env var.
+
+Repository Link
+- https://github.com/FAfrancis99/atm-server
+
+Live URL (Render)
+- https://atm-server-ea1v.onrender.com
+
+How to Run Locally (Windows PowerShell)
+1) Create and activate a virtual environment, install deps, start the server:
+   python -m venv venv
+   .\venv\Scripts\Activate.ps1
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload
+
+2) Optional: Seed demo accounts (in a new terminal/session before starting):
+   $env:PRELOAD_ACCOUNTS='{"1001":"500.00","7777":"0.00"}'
+   uvicorn app.main:app --reload
+
+How to Execute API Calls (curl)
+- Health
+  curl http://localhost:8000/health
+
+- Get balance
+  curl http://localhost:8000/accounts/1001/balance
+
+- Deposit 10.50
+  curl -X POST http://localhost:8000/accounts/1002/deposit -H "Content-Type: application/json" -d '{"amount":"10.50"}'
+
+- Withdraw 5.00
+  curl -X POST http://localhost:8000/accounts/1002/withdraw -H "Content-Type: application/json" -d '{"amount":"5.00"}'
+
+- Interactive API docs
+  http://localhost:8000/docs
+  (Hosted) https://atm-server-ea1v.onrender.com/docs
+
+Notes
+- A detailed explanation (overview, design decisions, API reference, Docker/Compose, and deployment) is in README.md.
+
+---
+
+README.md (copy)
+
 # Mini Project – ATM Server (FastAPI)
 
 A minimal server-side ATM system with in-memory accounts and three operations:
@@ -51,8 +109,7 @@ Base URL (local): http://127.0.0.1:8000
   - 400 → `{ "detail": "insufficient funds" }`
   - 404 → `{ "detail": "account not found" }`
 
-Interactive docs (local): http://127.0.0.1:8000/docs
-Live service (Render): https://atm-server-ea1v.onrender.com
+Interactive docs: http://127.0.0.1:8000/docs
 
 ## Local Development
 
@@ -93,8 +150,10 @@ This project is deployment-ready on Render using the Dockerfile.
 3) Select Docker as environment (Dockerfile is auto-detected).
 4) Set environment variables as needed (optional):
    - `PRELOAD_ACCOUNTS` e.g. `{ "1001": "1000.00", "1002": "250.50" }`
-5) Deploy. Live URL used for this project:
-  - https://atm-server-ea1v.onrender.com
+5) Deploy. Render provides a URL like:
+   - `https://<your-service>.onrender.com`
+
+Add this URL to your submission.
 
 ## Example API Calls
 
@@ -182,11 +241,3 @@ sequenceDiagram
   S-->>API: new_balance_cents
   API-->>C: 200 {account_number, balance: "#.##"}
 ```
-
-
-
-
-
-
-
-
